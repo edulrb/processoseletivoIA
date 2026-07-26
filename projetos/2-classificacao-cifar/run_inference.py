@@ -1,14 +1,24 @@
+import tensorflow_datasets as tfds
+import tensorflow as tf
 import os
 import sys
 import argparse
 import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-import tensorflow as tf
 
 CLASS_NAMES = [
-    "airplane", "automobile", "bird", "cat", "deer",
-    "dog", "frog", "horse", "ship", "truck"
+    "avião", "automóvel", "pássaro", "gato", "cervo",
+    "cachorro", "sapo", "cavalo", "navio", "caminhão"
 ]
+
+
+def load_cifar10_test():
+    # Mesmo mirror (GCS via tensorflow-datasets) usado nos outros dois scripts.
+    ds_test = tfds.load("cifar10", split="test",
+                        batch_size=-1, as_supervised=True)
+    x_test, y_test = tfds.as_numpy(ds_test)
+    y_test = y_test.reshape(-1, 1)
+    return x_test, y_test
 
 
 def run_inference(tflite_path, num_samples=5):
@@ -22,13 +32,11 @@ def run_inference(tflite_path, num_samples=5):
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
-    # dtype pode mudar dependendo da quantização usada (float32 no dynamic range,
-    # mas seria uint8/int8 se fosse full-integer)
     expected_dtype = input_details[0]['dtype']
 
-    (_, _), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+    x_test, y_test = load_cifar10_test()
 
-    np.random.seed(42)  # fixo só pra eu conseguir comparar execuções diferentes
+    np.random.seed(42)
     indices = np.random.choice(len(x_test), num_samples, replace=False)
 
     correct_count = 0
@@ -53,7 +61,8 @@ def run_inference(tflite_path, num_samples=5):
         if pred_idx == real_idx:
             correct_count += 1
 
-        print(f"Amostra {idx:04d} | Predito: {CLASS_NAMES[pred_idx]} | Real: {CLASS_NAMES[real_idx]}")
+        print(
+            f"Amostra {idx:04d} | Predito: {CLASS_NAMES[pred_idx]} | Real: {CLASS_NAMES[real_idx]}")
 
     print(f"\nAcertos: {correct_count}/{num_samples}")
 

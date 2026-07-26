@@ -1,2 +1,4 @@
-tensorflow>=2.12
+tensorflow==2.21.0
 numpy
+tensorflow-datasets
+importlib_resources

@@ -4,6 +4,14 @@ import numpy as np
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
+import tensorflow_datasets as tfds
+
+
+def load_cifar10_test():
+    ds_test = tfds.load("cifar10", split="test", batch_size=-1, as_supervised=True)
+    x_test, y_test = tfds.as_numpy(ds_test)
+    y_test = y_test.reshape(-1, 1)
+    return x_test, y_test
 
 
 def evaluate_tflite_model(interpreter, x_test, y_test):
@@ -28,7 +36,6 @@ def evaluate_tflite_model(interpreter, x_test, y_test):
         if np.argmax(output_data) == y_test[i][0]:
             correct_predictions += 1
 
-        # Log discreto de sobrevivência para evitar a impressão de que o terminal travou
         if (i + 1) % 2500 == 0:
             print(f"Inferência TFLite: {i + 1}/{total_images}")
 
@@ -45,7 +52,7 @@ def optimize_and_convert(model_path, output_path):
         sys.exit(1)
 
     model = tf.keras.models.load_model(model_path)
-    (_, _), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+    x_test, y_test = load_cifar10_test()
     x_test = x_test.astype('float32') / 255.0
 
     _, original_acc = model.evaluate(x_test, y_test, verbose=0)

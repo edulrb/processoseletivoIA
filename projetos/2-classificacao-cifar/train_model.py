@@ -5,14 +5,31 @@ import os
 import sys
 import io
 import numpy as np
+import tensorflow_datasets as tfds
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 
+def load_cifar10():
+    # Baixa via tensorflow-datasets (mirror no Google Cloud Storage) em vez do
+    # servidor da Keras (cs.toronto.edu), que estava dando problemas, demorando 1h no GitHub Actions
+    ds_train = tfds.load("cifar10", split="train",
+                         batch_size=-1, as_supervised=True)
+    ds_test = tfds.load("cifar10", split="test",
+                        batch_size=-1, as_supervised=True)
+
+    x_train_full, y_train_full = tfds.as_numpy(ds_train)
+    x_test, y_test = tfds.as_numpy(ds_test)
+
+    y_train_full = y_train_full.reshape(-1, 1)
+    y_test = y_test.reshape(-1, 1)
+
+    return (x_train_full, y_train_full), (x_test, y_test)
+
+
 def load_and_split_data():
-    (x_train_full, y_train_full), (x_test,
-                                   y_test) = keras.datasets.cifar10.load_data()
+    (x_train_full, y_train_full), (x_test, y_test) = load_cifar10()
 
     x_train_full = x_train_full.astype("float32") / 255.0
     x_test = x_test.astype("float32") / 255.0
@@ -83,7 +100,8 @@ def main():
         epochs=20,
         batch_size=64,
         validation_data=(x_val, y_val),
-        callbacks=[early_stopping]
+        callbacks=[early_stopping],
+        verbose=2
     )
 
     print("\nCalculando métricas finais...")
