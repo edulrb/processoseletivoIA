@@ -114,28 +114,23 @@ OS, Sys e Argparse: nativas do Python, para controle de linha de comando e supre
 Usei Dynamic Range Quantization nativa do TFLite (tf.lite.Optimize.DEFAULT). Ela pega os pesos do modelo (float32) e converte para inteiros de 8 bits (int8). As ativações continuam sendo calculadas em float32 durante a inferência. A vantagem é reduzir drasticamente o tamanho do arquivo sem prejudicar a acurácia.
 
 ### 4️⃣ Resultados Obtidos
-
-Acurácia .h5: 73.01%
-Acurácia .tflite: 72.88%
-
+Acurácia de validação (treino): 63.92%
+Acurácia .h5: 64.16%
+Acurácia .tflite: 64.26%
 Tamanho do model.h5: ~1.38 MB
-
 Tamanho do model.tflite: ~0.12 MB (~120 KB)
 Houve uma redução de mais de 10x no tamanho final do artefato.
 
 ### 5️⃣ Comentários Adicionais (Opcional)
-
-O maior desafio não foi a modelagem, e sim a infraestrutura: o download do CIFAR-10 via keras.datasets.cifar10 travava por mais de 1h no GitHub Actions (servidor de origem lento), então troquei para tensorflow-datasets, que usa um mirror mais rápido. Também tive que fixar a versão exata do TensorFlow no requirements.txt, porque uma divergência de versão entre o ambiente local e o do Actions estava impedindo o model.h5 de ser recarregado corretamente.
+O maior desafio não foi a modelagem, e sim a infraestrutura: o download do CIFAR-10 via keras.datasets.cifar10 travava por mais de 1h no GitHub Actions (servidor de origem lento), então troquei para tensorflow-datasets, que usa um mirror mais rápido. Também precisei recriar meu ambiente local usando Python 3.10 (igual ao do GitHub Actions), pois meu Codespace estava em Python 3.11 com uma versão do Keras (3.15) que não existe para 3.10 — o ambiente de validação só suporta até o Keras 3.12, o que causava erro de deserialização ao carregar o model.h5. Retreinar dentro do ambiente correto resolveu o problema de compatibilidade.
 
 ### 6️⃣ Exemplo de Inferência
-
 Testando modelo em 5 amostras:
-Amostra 6252 | Predito: cervo | Real: cervo
+Amostra 6252 | Predito: sapo | Real: cervo
 Amostra 4684 | Predito: cavalo | Real: cavalo
-Amostra 1731 | Predito: avião | Real: gato
+Amostra 1731 | Predito: sapo | Real: gato
 Amostra 4742 | Predito: caminhão | Real: caminhão
 Amostra 4521 | Predito: automóvel | Real: automóvel
+Acertos: 3/5
 
-Acertos: 4/5
-
-O erro na amostra 1731 faz sentido para esse dataset. Como as imagens são 32x32 e muito borradas, redes menores confundem a textura do fundo da imagem. O fundo de um cachorro num gramado e de um sapo num pântano ativam os mesmos filtros de cor/textura da convolução, resultando nesse falso positivo.
+Os dois erros (amostras 6252 e 1731) seguem o mesmo padrão: animais confundidos com "sapo". Isso é coerente com o tamanho reduzido da rede e a baixa resolução das imagens (32x32) — texturas de fundo semelhantes (vegetação, tons esverdeados/acinzentados) podem ativar os mesmos filtros convolucionais em classes visualmente distintas.
