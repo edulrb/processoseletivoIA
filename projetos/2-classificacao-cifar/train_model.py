@@ -61,7 +61,7 @@ def build_model():
 
     return model
 
-#teste
+
 def main():
     keras.utils.set_random_seed(42)
 
@@ -88,10 +88,7 @@ def main():
 
     print("\nCalculando métricas finais...")
     val_loss, val_acc = model.evaluate(x_val, y_val, verbose=0)
-
-    print(f"\n========================================")
     print(f"Acurácia de Validação Final: {val_acc:.4f} ({val_acc * 100:.2f}%)")
-    print(f"========================================\n")
 
     model_path = os.path.join(os.path.dirname(
         os.path.abspath(__file__)), "model.h5")
