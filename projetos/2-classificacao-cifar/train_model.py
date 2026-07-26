@@ -61,7 +61,7 @@ def build_model():
 
     return model
 
-
+#teste
 def main():
     keras.utils.set_random_seed(42)
 
