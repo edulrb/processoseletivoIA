@@ -103,9 +103,9 @@ Implementei uma CNN com 3 blocos convolucionais. Cada bloco usa Conv2D, BatchNor
 
 ### 2️⃣ Bibliotecas Utilizadas
 
-TensorFlow / Keras: construção da rede e conversão TFLite
+TensorFlow / Keras (v2.21.0): construção da rede e conversão TFLite
 
-NumPy: manipulação de tensores e semente fixa para reprodutibilidade
+NumPy (v2.4.6): manipulação de tensores e semente fixa para reprodutibilidade
 
 OS, Sys e Argparse: nativas do Python, para controle de linha de comando e supressão de logs de C++ do sistema
 
@@ -115,7 +115,8 @@ Usei Dynamic Range Quantization nativa do TFLite (tf.lite.Optimize.DEFAULT). Ela
 
 ### 4️⃣ Resultados Obtidos
 
-Acurácia de validação: ~73.5%
+Acurácia .h5: 73.01%
+Acurácia .tflite: 72.88%
 
 Tamanho do model.h5: ~1.38 MB
 
@@ -124,18 +125,16 @@ Houve uma redução de mais de 10x no tamanho final do artefato.
 
 ### 5️⃣ Comentários Adicionais (Opcional)
 
-A prioridade ao montar a arquitetura foi focar em um modelo enxuto e rápido para não estourar o tempo de treinamento na CPU, usando Dropout para controlar o overfitting, em vez de criar uma rede pesada apenas para forçar uma acurácia maior.
-
-Outro ponto de atenção foi a etapa de otimização. A checagem final serviu justamente para confirmar que a conversão para .tflite (quantização) manteve a capacidade preditiva do modelo, garantindo que o arquivo menor ainda entregasse o mesmo resultado do .h5 original.
+O maior desafio não foi a modelagem, e sim a infraestrutura: o download do CIFAR-10 via keras.datasets.cifar10 travava por mais de 1h no GitHub Actions (servidor de origem lento), então troquei para tensorflow-datasets, que usa um mirror mais rápido. Também tive que fixar a versão exata do TensorFlow no requirements.txt, porque uma divergência de versão entre o ambiente local e o do Actions estava impedindo o model.h5 de ser recarregado corretamente.
 
 ### 6️⃣ Exemplo de Inferência
 
 Testando modelo em 5 amostras:
-Amostra 6252 | Predito: bird | Real: bird
-Amostra 4684 | Predito: automobile | Real: automobile
-Amostra 1731 | Predito: frog | Real: dog
-Amostra 4742 | Predito: ship | Real: ship
-Amostra 4521 | Predito: truck | Real: truck
+Amostra 6252 | Predito: cervo | Real: cervo
+Amostra 4684 | Predito: cavalo | Real: cavalo
+Amostra 1731 | Predito: avião | Real: gato
+Amostra 4742 | Predito: caminhão | Real: caminhão
+Amostra 4521 | Predito: automóvel | Real: automóvel
 
 Acertos: 4/5
 
