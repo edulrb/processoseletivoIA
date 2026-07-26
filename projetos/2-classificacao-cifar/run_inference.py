@@ -1,58 +1,67 @@
 import os
 import sys
-import io
-
-# Configurar stdout e stderr para usar UTF-8 e evitar erros de codificação no Windows
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-if sys.stderr.encoding != 'utf-8':
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-
+import argparse
 import numpy as np
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
-
-# ---------------------------------------------------------------------------
-# Projeto 2 — Inferência com o Modelo Otimizado (model.tflite)
-#
-# Requisitos (veja README.md desta pasta para detalhes completos):
-#   1. Carregar especificamente o "model.tflite" (o artefato de edge, não o
-#      model.h5) usando tf.lite.Interpreter
-#   2. Rodar inferência em pelo menos 5 amostras do conjunto de teste do CIFAR-10
-#   3. Imprimir no terminal, para cada amostra: classe predita vs. classe real
-# ---------------------------------------------------------------------------
-
-N_SAMPLES = 5
 
 CLASS_NAMES = [
     "airplane", "automobile", "bird", "cat", "deer",
-    "dog", "frog", "horse", "ship", "truck",
+    "dog", "frog", "horse", "ship", "truck"
 ]
 
 
-def main():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(script_dir, "model.tflite")
-    interpreter = tf.lite.Interpreter(model_path=model_path)
+def run_inference(tflite_path, num_samples=5):
+    if not os.path.exists(tflite_path):
+        print(f"Erro: Arquivo '{tflite_path}' não encontrado.")
+        sys.exit(1)
+
+    interpreter = tf.lite.Interpreter(model_path=tflite_path)
     interpreter.allocate_tensors()
+
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
-    (_, _), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-    x_test = x_test.astype("float32") / 255.0
-    y_test = y_test.reshape(-1)
+    # dtype pode mudar dependendo da quantização usada (float32 no dynamic range,
+    # mas seria uint8/int8 se fosse full-integer)
+    expected_dtype = input_details[0]['dtype']
 
-    print(f"Rodando inferência em {N_SAMPLES} amostras usando model.tflite:\n")
-    for i in range(N_SAMPLES):
-        sample = np.expand_dims(x_test[i], axis=0).astype(input_details[0]["dtype"])
-        interpreter.set_tensor(input_details[0]["index"], sample)
+    (_, _), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+
+    np.random.seed(42)  # fixo só pra eu conseguir comparar execuções diferentes
+    indices = np.random.choice(len(x_test), num_samples, replace=False)
+
+    correct_count = 0
+
+    print(f"Testando modelo em {num_samples} amostras:")
+
+    for idx in indices:
+        if expected_dtype == np.uint8 or expected_dtype == np.int8:
+            input_data = x_test[idx].astype(expected_dtype)
+        else:
+            input_data = (x_test[idx] / 255.0).astype(expected_dtype)
+
+        input_data = np.expand_dims(input_data, axis=0)
+
+        interpreter.set_tensor(input_details[0]['index'], input_data)
         interpreter.invoke()
-        pred = interpreter.get_tensor(output_details[0]["index"])[0]
-        predicted_class = int(np.argmax(pred))
-        print(
-            f"Amostra {i + 1}: predito={CLASS_NAMES[predicted_class]} "
-            f"| real={CLASS_NAMES[int(y_test[i])]}"
-        )
+        output_data = interpreter.get_tensor(output_details[0]['index'])
+
+        pred_idx = np.argmax(output_data)
+        real_idx = y_test[idx][0]
+
+        if pred_idx == real_idx:
+            correct_count += 1
+
+        print(f"Amostra {idx:04d} | Predito: {CLASS_NAMES[pred_idx]} | Real: {CLASS_NAMES[real_idx]}")
+
+    print(f"\nAcertos: {correct_count}/{num_samples}")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_path", type=str, default="model.tflite")
+    parser.add_argument("--samples", type=int, default=5)
+
+    args = parser.parse_args()
+    run_inference(args.model_path, args.samples)
