@@ -96,28 +96,47 @@ projetos/2-classificacao-cifar/
 
 ## 📝 Relatório do Candidato
 
-👤 **Nome Completo:**
+👤 **Nome Completo:** Eduardo Lustosa Ribeiro
 
 ### 1️⃣ Resumo da Arquitetura do Modelo
-
-Descreva a arquitetura da CNN implementada em `train_model.py` e a estratégia de data augmentation utilizada.
+Implementei uma CNN com 3 blocos convolucionais. Cada bloco usa Conv2D, BatchNormalization (para estabilidade) e MaxPooling2D. Depois, uso Flatten, um Dropout de 0.5 (para segurar overfitting) e uma camada Dense final com ativação softmax para as 10 classes. O data augmentation (RandomFlip, RandomRotation de 0.1 e RandomZoom de 0.1) foi embutido direto como camada do Keras no modelo, o que ajuda a generalizar os dados de treino direto no pipeline.
 
 ### 2️⃣ Bibliotecas Utilizadas
 
-Liste as principais bibliotecas utilizadas, preferencialmente com suas versões.
+TensorFlow / Keras: construção da rede e conversão TFLite
+
+NumPy: manipulação de tensores e semente fixa para reprodutibilidade
+
+OS, Sys e Argparse: nativas do Python, para controle de linha de comando e supressão de logs de C++ do sistema
 
 ### 3️⃣ Técnica de Otimização do Modelo
 
-Explique qual técnica foi utilizada para otimizar o modelo em `optimize_model.py`.
+Usei Dynamic Range Quantization nativa do TFLite (tf.lite.Optimize.DEFAULT). Ela pega os pesos do modelo (float32) e converte para inteiros de 8 bits (int8). As ativações continuam sendo calculadas em float32 durante a inferência. A vantagem é reduzir drasticamente o tamanho do arquivo sem prejudicar a acurácia.
 
 ### 4️⃣ Resultados Obtidos
 
-Informe a acurácia de validação obtida e o tamanho dos arquivos `model.h5` e `model.tflite`.
+Acurácia de validação: ~73.5%
+
+Tamanho do model.h5: ~1.38 MB
+
+Tamanho do model.tflite: ~0.12 MB (~120 KB)
+Houve uma redução de mais de 10x no tamanho final do artefato.
 
 ### 5️⃣ Comentários Adicionais (Opcional)
 
-Dificuldades encontradas, decisões técnicas importantes, limitações do modelo, aprendizados durante o desafio.
+A prioridade ao montar a arquitetura foi focar em um modelo enxuto e rápido para não estourar o tempo de treinamento na CPU, usando Dropout para controlar o overfitting, em vez de criar uma rede pesada apenas para forçar uma acurácia maior.
+
+Outro ponto de atenção foi a etapa de otimização. A checagem final serviu justamente para confirmar que a conversão para .tflite (quantização) manteve a capacidade preditiva do modelo, garantindo que o arquivo menor ainda entregasse o mesmo resultado do .h5 original.
 
 ### 6️⃣ Exemplo de Inferência
 
-Cole a saída do terminal ao rodar `run_inference.py` (predito vs. real para as 5+ amostras), e comente brevemente se houve algum caso interessante (acerto ou erro) entre as amostras testadas.
+Testando modelo em 5 amostras:
+Amostra 6252 | Predito: bird | Real: bird
+Amostra 4684 | Predito: automobile | Real: automobile
+Amostra 1731 | Predito: frog | Real: dog
+Amostra 4742 | Predito: ship | Real: ship
+Amostra 4521 | Predito: truck | Real: truck
+
+Acertos: 4/5
+
+O erro na amostra 1731 faz sentido para esse dataset. Como as imagens são 32x32 e muito borradas, redes menores confundem a textura do fundo da imagem. O fundo de um cachorro num gramado e de um sapo num pântano ativam os mesmos filtros de cor/textura da convolução, resultando nesse falso positivo.
