@@ -94,24 +94,19 @@ projetos/2-classificacao-cifar/
 
 ---
 
-## 📝 Relatório do Candidato
-
 👤 **Nome Completo:** Eduardo Lustosa Ribeiro
 
 ### 1️⃣ Resumo da Arquitetura do Modelo
-Implementei uma CNN com 3 blocos convolucionais. Cada bloco usa Conv2D, BatchNormalization (para estabilidade) e MaxPooling2D. Depois, uso Flatten, um Dropout de 0.5 (para segurar overfitting) e uma camada Dense final com ativação softmax para as 10 classes. O data augmentation (RandomFlip, RandomRotation de 0.1 e RandomZoom de 0.1) foi embutido direto como camada do Keras no modelo, o que ajuda a generalizar os dados de treino direto no pipeline.
+Implementei uma CNN com 3 blocos convolucionais. Cada bloco usa Conv2D, BatchNormalization (para estabilidade) e MaxPooling2D. Depois, uso Flatten, um Dropout de 0.5 (para segurar overfitting) e uma camada Dense final com ativação softmax para as 10 classes. O data augmentation (RandomFlip, RandomRotation de 0.1 e RandomZoom de 0.1) foi embutido direto como camada do Keras (em um Sequential aninhado) dentro do modelo, o que ajuda a generalizar os dados de treino direto no pipeline.
 
 ### 2️⃣ Bibliotecas Utilizadas
-
-TensorFlow / Keras (v2.21.0): construção da rede e conversão TFLite
-
-NumPy (v2.4.6): manipulação de tensores e semente fixa para reprodutibilidade
-
-OS, Sys e Argparse: nativas do Python, para controle de linha de comando e supressão de logs de C++ do sistema
+- TensorFlow / Keras 2.21.0: construção da rede e conversão TFLite
+- tensorflow-datasets: carregamento do CIFAR-10
+- NumPy: manipulação de tensores e semente fixa para reprodutibilidade
+- OS, Sys e Argparse: nativas do Python, para controle de linha de comando e supressão de logs de C++ do sistema
 
 ### 3️⃣ Técnica de Otimização do Modelo
-
-Usei Dynamic Range Quantization nativa do TFLite (tf.lite.Optimize.DEFAULT). Ela pega os pesos do modelo (float32) e converte para inteiros de 8 bits (int8). As ativações continuam sendo calculadas em float32 durante a inferência. A vantagem é reduzir drasticamente o tamanho do arquivo sem prejudicar a acurácia.
+Usei Dynamic Range Quantization nativa do TFLite (tf.lite.Optimize.DEFAULT). Ela pega os pesos do modelo (float32) e converte para inteiros de 8 bits (int8). As ativações continuam sendo calculadas em float32 durante a inferência. A vantagem é reduzir drasticamente o tamanho do arquivo com impacto mínimo na acurácia.
 
 ### 4️⃣ Resultados Obtidos
 Acurácia de validação (treino): 63.92%
